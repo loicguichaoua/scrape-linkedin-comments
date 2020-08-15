@@ -25,11 +25,12 @@ const LINKEDIN_POST_URL = '';
 // LINKEDIN LOGIN PAGE
 const LINKEDIN_LOGIN_URL = 'https://www.linkedin.com/login?fromSignIn=true&trk=guest_homepage-basic_nav-header-signin';
 // REQUIRED SELECTORS
+// These might need to be updated from time to time if the website modifies its source code
 const EMAIL_SELECTOR = '#username';
 const PASSWORD_SELECTOR = '#password';
 const SUBMIT_SELECTOR = '#app__container > main > div > form > div.login__form_action_container > button';
 const COMMENTS_DROPDOWN_SELECTOR = 'button.comments-sort-order-toggle__trigger.artdeco-dropdown__trigger.artdeco-dropdown__trigger--placement-bottom.ember-view';
-const MOST_RECENT_COMMENTS_SELECTOR = 'div.dropdown-options.comments-sort-order-toggle__content.artdeco-dropdown__content.artdeco-dropdown__content--is-open.artdeco-dropdown--is-dropdown-element.artdeco-dropdown__content--justification-right.artdeco-dropdown__content--placement-bottom.ember-view > div.artdeco-dropdown__content-inner > ul > li:nth-child(2)';
+const MOST_RECENT_COMMENTS_SELECTOR = 'div.dropdown-options.comments-sort-order-toggle__content.artdeco-dropdown__content.artdeco-dropdown__content--is-open.artdeco-dropdown--is-dropdown-element.artdeco-dropdown__content--placement-bottom.ember-view > div.artdeco-dropdown__content-inner > ul > li:nth-child(2)';
 const LOAD_MORE_COMMENTS_SELECTOR = 'div.comments-comments-list__show-previous-container > button';
 const AUTHORS_SELECTOR = 'article > div:nth-of-type(1) > a:nth-of-type(2) > h3 > span:nth-of-type(1) > span.hoverable-link-text';
 const COMMENTS_SELECTOR = 'article > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1) > p:nth-of-type(1) > span:nth-of-type(1) > span:nth-of-type(1)';
@@ -41,6 +42,8 @@ const PROFILES_SELECTOR = 'article > div:nth-of-type(1) > a:nth-of-type(2)';
 // MAIN FUNCTION
 // ################################################
 if (process.argv[1] !== undefined) { // keeping this line if we need input from user in the future
+  
+
     (() => {
         puppeteer.launch({ headless: false }) // toggle to true to hide the browser
             .then(async (browser) => {
@@ -58,7 +61,8 @@ if (process.argv[1] !== undefined) { // keeping this line if we need input from 
                 await page.click(PASSWORD_SELECTOR);
                 await page.keyboard.type(MY_PASSWORD);
                 await page.click(SUBMIT_SELECTOR);
-                await page.goto(LINKEDIN_POST_URL, { waitUntil: 'domcontentloaded' }) //LOIC
+                await page.waitForSelector(".share-box-feed-entry__wrapper.artdeco-card", { timeout: 10000 }); // waiting to make sure we had time to log in before navigating to the post's url
+                await page.goto(LINKEDIN_POST_URL, { waitUntil: 'domcontentloaded' });
                 
 
 
@@ -167,14 +171,25 @@ if (process.argv[1] !== undefined) { // keeping this line if we need input from 
                 let text = ""
                 // Formatting data
                 for (i = 0; i < nbOfComments; i++) {
-                  text += (i + 1) + ";" + myArray1[i] + ";" + myArray2[i] + ";" + myArray3[i] + "\n";
+                  text += (i + 1) + ";" + myArray1[i] + ";" + myArray2[i] + ";" + myArray3[i] + "\n"; // feel free to substitute ";" with any delimiter that suits you
                 }
+                // Naming the file
                 date = new Date().toISOString().
                   replace(/T/, '_').
                   replace(/:/, 'h').
                   replace(/:/, 'm').
                   replace(/\..+/, 's')
                 csvName = date + '_' + nbOfComments + 'comments.csv'
+                //Creating 'output' directory
+                if (! fs.existsSync('./output')) {
+                  fs.mkdir('./output', (err) => {
+                    if (err) {
+                      console.log('Error creating output folder: '+err);
+                      return;
+                    }
+                    console.log('output folder created.');
+                  });
+                };
                 // Writing csv file
                 fs.writeFile('./output/' + csvName, text, function (err) {
                   if (err) return console.log(err);
@@ -183,7 +198,7 @@ if (process.argv[1] !== undefined) { // keeping this line if we need input from 
 
             })
             .catch((err) => {
-                console.log("An error occurred. 😭\n", err);
+                console.log("An error occurred 😭:\n", err);
             })
     })()
 }
